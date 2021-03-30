@@ -1,0 +1,151 @@
+# Copyright (c) 2019, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+version: '2.3'
+services:
+  mysql:
+    image: mysql:5.7.28
+    ports:
+      - 3306
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./mysql/scripts:/docker-entrypoint-initdb.d
+      - ./mysql/conf/my.cnf:/etc/mysql/my.cnf
+    ulimits:
+      nofile:
+        soft: 20000
+        hard: 40000
+    command: [--ssl=0]
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-uroot", "-proot"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+  traffic-manager:
+    image: wso2am:3.2.0-support
+    ports:
+      - 9443
+      - 5672
+      - 9711
+      - 9611
+    environment:
+      - PROFILE_NAME=traffic-manager
+    healthcheck:
+      test: ["CMD", "nc", "-z","localhost", "9443"]
+      interval: 10s
+      start_period: 100s
+      retries: 10
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./traffic-manager/config:/home/wso2carbon/wso2-config-volume
+      - ./traffic-manager/artifact:/home/wso2carbon/wso2-artifact-volume
+  key-manager:
+    image: wso2am:3.2.0-support
+    ports:
+      - 9443
+    environment:
+      - PROFILE_NAME=api-key-manager
+    healthcheck:
+      test: ["CMD", "nc", "-z","localhost", "9443"]
+      interval: 10s
+      start_period: 100s
+      retries: 10
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./key-manager/config:/home/wso2carbon/wso2-config-volume
+      - ./key-manager/artifact:/home/wso2carbon/wso2-artifact-volume
+
+  gateway:
+    image: wso2am:3.2.0-support
+    ports:
+      - 8243
+      - 9443
+    environment:
+      - PROFILE_NAME=gateway-worker
+    healthcheck:
+      test: ["CMD", "nc", "-z","localhost", "8243"]
+      interval: 10s
+      start_period: 100s
+      retries: 10
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./gateway/config:/home/wso2carbon/wso2-config-volume
+      - ./gateway/artifact:/home/wso2carbon/wso2-artifact-volume
+  publisher:
+    image: wso2am:3.2.0-support
+    ports:
+      - 9443
+    environment:
+      - PROFILE_NAME=api-publisher
+    healthcheck:
+      test: ["CMD", "nc", "-z","localhost", "9443"]
+      interval: 10s
+      start_period: 100s
+      retries: 10
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./publisher/config:/home/wso2carbon/wso2-config-volume
+      - ./publisher/artifact:/home/wso2carbon/wso2-artifact-volume
+  devportal:
+    image: wso2am:3.2.0-support
+    ports:
+      - 9443
+    environment:
+      - PROFILE_NAME=api-devportal
+    healthcheck:
+      test: ["CMD", "nc", "-z","localhost", "9443"]
+      interval: 10s
+      start_period: 100s
+      retries: 10
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./devportal/config:/home/wso2carbon/wso2-config-volume
+      - ./devportal/artifact:/home/wso2carbon/wso2-artifact-volume
+  nginx:
+    build:
+      context: nginx
+    depends_on:
+      gateway:
+        condition: service_healthy
+      publisher:
+        condition: service_healthy
+      devportal:
+        condition: service_healthy
+      traffic-manager:
+        condition: service_healthy
+      key-manager:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z","localhost", "443"]
+      interval: 10s
+      start_period: 100s
+      retries: 10
+    ports:
+      - 443:443
+    volumes:
+      - ./nginx/sites-enabled:/etc/nginx/sites-enabled
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
