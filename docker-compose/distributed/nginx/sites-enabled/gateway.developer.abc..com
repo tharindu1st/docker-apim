@@ -1,17 +1,16 @@
 
-upstream sslkm.am.wso2.com {
-    server key-manager:9443;
+upstream gateway {
+    server gateway:8243;
 }
-
 server {
     listen 443;
-    server_name api.km.wso2.com;
+    server_name gateway.developer.abc.com;
     proxy_set_header X-Forwarded-Port 443;
     ssl on;
     ssl_certificate /etc/nginx/ssl/server.crt;
     ssl_certificate_key /etc/nginx/ssl/apim.key;
-    access_log /etc/nginx/log/am/https/km-access.log;
-    error_log /etc/nginx/log/am/https/km-error.log;
+    access_log /etc/nginx/log/am/https/gateway-access.log;
+    error_log /etc/nginx/log/am/https/gateway-error.log;
 
     location / {
                proxy_set_header X-Forwarded-Host $host;
@@ -20,6 +19,6 @@ server {
                proxy_set_header Host $http_host;
                proxy_read_timeout 5m;
                proxy_send_timeout 5m;
-               proxy_pass https://sslkm.am.wso2.com;
+               proxy_pass https://gateway/t/abc.com/;               
         }
 }

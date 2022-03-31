@@ -1,7 +1,6 @@
 
 upstream sslapi.am.wso2.com {
-    server publisher:9443;
-    server devportal:9443;
+    server apim:9443;
 }
 
 server {
@@ -13,6 +12,15 @@ server {
     ssl_certificate_key /etc/nginx/ssl/apim.key;
     access_log /etc/nginx/log/am/https/access.log;
     error_log /etc/nginx/log/am/https/error.log;
+    location / {
+               proxy_set_header X-Forwarded-Host $host;
+               proxy_set_header X-Forwarded-Server $host;
+               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+               proxy_set_header Host $http_host;
+               proxy_read_timeout 5m;
+               proxy_send_timeout 5m;
+               proxy_pass https://sslapi.am.wso2.com/;
+        }
     location /publisher {
                proxy_set_header X-Forwarded-Host $host;
                proxy_set_header X-Forwarded-Server $host;
@@ -20,7 +28,7 @@ server {
                proxy_set_header Host $http_host;
                proxy_read_timeout 5m;
                proxy_send_timeout 5m;
-               proxy_pass https://publisher:9443/publisher;
+               proxy_pass https://sslapi.am.wso2.com/publisher;
         }
 
     location /admin {
@@ -30,7 +38,7 @@ server {
                proxy_set_header Host $http_host;
                proxy_read_timeout 5m;
                proxy_send_timeout 5m;
-               proxy_pass https://publisher:9443/admin;
+               proxy_pass https://sslapi.am.wso2.com/admin;
         }
 
        location /devportal{
@@ -40,35 +48,44 @@ server {
                proxy_set_header Host $http_host;
                proxy_read_timeout 5m;
                proxy_send_timeout 5m;
-               proxy_pass https://devportal:9443/devportal;
+               proxy_pass https://sslapi.am.wso2.com/devportal;
        }
-       location /api/am/store/v1{
+        location /carbon{
                proxy_set_header X-Forwarded-Host $host;
                proxy_set_header X-Forwarded-Server $host;
                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                proxy_set_header Host $http_host;
                proxy_read_timeout 5m;
                proxy_send_timeout 5m;
-               proxy_pass https://devportal:9443/api/am/store/v1;
+               proxy_pass https://sslapi.am.wso2.com/carbon;
+       }
+       location /api/am/devportal/v2{
+               proxy_set_header X-Forwarded-Host $host;
+               proxy_set_header X-Forwarded-Server $host;
+               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+               proxy_set_header Host $http_host;
+               proxy_read_timeout 5m;
+               proxy_send_timeout 5m;
+               proxy_pass https://sslapi.am.wso2.com/api/am/devportal/v2;
        }
 
-       location /api/am/admin/v1{
+       location /api/am/admin/v3{
                proxy_set_header X-Forwarded-Host $host;
                proxy_set_header X-Forwarded-Server $host;
                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                proxy_set_header Host $http_host;
                proxy_read_timeout 5m;
                proxy_send_timeout 5m;
-               proxy_pass https://publisher:9443/api/am/admin/v1;
+               proxy_pass https://sslapi.am.wso2.com/api/am/admin/v3;
        }
-       location /api/am/publisher/v1{
+       location /api/am/publisher/v3{
                proxy_set_header X-Forwarded-Host $host;
                proxy_set_header X-Forwarded-Server $host;
                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                proxy_set_header Host $http_host;
                proxy_read_timeout 5m;
                proxy_send_timeout 5m;
-               proxy_pass https://publisher:9443/api/am/publisher/v1;
+               proxy_pass https://sslapi.am.wso2.com/api/am/publisher/v3;
        }
        location /authenticationendpoint{
                proxy_set_header X-Forwarded-Host $host;

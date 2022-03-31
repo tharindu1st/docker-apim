@@ -35,7 +35,7 @@ services:
       retries: 5
       start_period: 80s
   traffic-manager:
-    image: wso2am:3.2.0-support
+    image: wso2am:4.1.0-SNAPSHOT
     ports:
       - 9443
       - 5672
@@ -49,31 +49,13 @@ services:
       start_period: 100s
       retries: 10
     depends_on:
-      mysql:
+      apim:
         condition: service_healthy
     volumes:
       - ./traffic-manager/config:/home/wso2carbon/wso2-config-volume
       - ./traffic-manager/artifact:/home/wso2carbon/wso2-artifact-volume
-  key-manager:
-    image: wso2am:3.2.0-support
-    ports:
-      - 9443
-    environment:
-      - PROFILE_NAME=api-key-manager
-    healthcheck:
-      test: ["CMD", "nc", "-z","localhost", "9443"]
-      interval: 10s
-      start_period: 100s
-      retries: 10
-    depends_on:
-      mysql:
-        condition: service_healthy
-    volumes:
-      - ./key-manager/config:/home/wso2carbon/wso2-config-volume
-      - ./key-manager/artifact:/home/wso2carbon/wso2-artifact-volume
-
   gateway:
-    image: wso2am:3.2.0-support
+    image: wso2am:4.1.0-SNAPSHOT
     ports:
       - 8243
       - 9443
@@ -87,15 +69,22 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      apim:
+        condition: service_healthy
+      traffic-manager:
+        condition: service_healthy
     volumes:
       - ./gateway/config:/home/wso2carbon/wso2-config-volume
       - ./gateway/artifact:/home/wso2carbon/wso2-artifact-volume
-  publisher:
-    image: wso2am:3.2.0-support
+  apim:
+    image: wso2am:4.1.0-SNAPSHOT
     ports:
       - 9443
+      - 5672
+      - 9711
+      - 9611
     environment:
-      - PROFILE_NAME=api-publisher
+      - PROFILE_NAME=control-plane  
     healthcheck:
       test: ["CMD", "nc", "-z","localhost", "9443"]
       interval: 10s
@@ -105,38 +94,17 @@ services:
       mysql:
         condition: service_healthy
     volumes:
-      - ./publisher/config:/home/wso2carbon/wso2-config-volume
-      - ./publisher/artifact:/home/wso2carbon/wso2-artifact-volume
-  devportal:
-    image: wso2am:3.2.0-support
-    ports:
-      - 9443
-    environment:
-      - PROFILE_NAME=api-devportal
-    healthcheck:
-      test: ["CMD", "nc", "-z","localhost", "9443"]
-      interval: 10s
-      start_period: 100s
-      retries: 10
-    depends_on:
-      mysql:
-        condition: service_healthy
-    volumes:
-      - ./devportal/config:/home/wso2carbon/wso2-config-volume
-      - ./devportal/artifact:/home/wso2carbon/wso2-artifact-volume
+      - ./apim/config:/home/wso2carbon/wso2-config-volume
+      - ./apim/artifact:/home/wso2carbon/wso2-artifact-volume
   nginx:
     build:
       context: nginx
     depends_on:
       gateway:
         condition: service_healthy
-      publisher:
-        condition: service_healthy
-      devportal:
+      apim:
         condition: service_healthy
       traffic-manager:
-        condition: service_healthy
-      key-manager:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "nc", "-z","localhost", "443"]
